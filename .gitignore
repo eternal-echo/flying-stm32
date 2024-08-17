@@ -1,0 +1,30 @@
+# PlatformIO Core (CLI) specific files
+.piolibdeps/
+.pioenvs/
+.pio/
+build/
+
+# User-specific files
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.swn
+*.bak
+*.tmp
+
+# VSCode specific files
+.vscode/
+.history/
+.vscode/
+
+# JetBrains IDEs (CLion, PyCharm, etc.) specific files
+.idea/
+*.iml
+
+# macOS specific files
+.DS_Store
+
+# Windows specific files
+Thumbs.db
