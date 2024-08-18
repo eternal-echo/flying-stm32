@@ -1,6 +1,7 @@
 #include "MPU9250.h"
+#include <Wire.h> 
 
-MPU9250 mpu;
+MPU9250 mpu(Wire2);
 
 
 void print_roll_pitch_yaw() {
@@ -15,7 +16,7 @@ void print_roll_pitch_yaw() {
 
 void setup() {
     Serial.begin(115200);
-    Wire.begin();
+    Wire2.begin(SDA2, SCL2);
     delay(2000);
 
     if (!mpu.setup(0x68)) {  // change to your own address
