@@ -4,15 +4,25 @@
 #include <Arduino.h>
 #include <STM32FreeRTOS.h>
 
+#include "ros.hpp"
+
 #include <EasyLogger.h>
 #include "ServoEasing.hpp"
 #include "imu.h"
 
+#define XRCEDDS_PORT  Serial3
+#define PUBLISH_FREQUENCY 2 //hz
+
+HardwareSerial ros_serial(PD8, PD9);
+
 osThreadId_t tid_servo;
 osThreadId_t tid_imu;
+osThreadId_t tid_ros;
 
 ServoEasing arm_servo;
 IMU imu;
+RosNode ros_node(ros_serial, 2);
+
 
 void imu_thread(void *argument)
 {
@@ -47,8 +57,14 @@ void servo_thread(void *argument)
  *      Main: Initialize and start the application
  *---------------------------------------------------------------------------*/
 void app_main (void */*argument*/) {
+	LOG_INFO("app_main", "Creating threads");
+
 	tid_servo = osThreadNew(servo_thread, NULL, NULL);
-	tid_imu = osThreadNew(imu_thread, NULL, NULL);	
+	tid_imu = osThreadNew(imu_thread, NULL, NULL);
+	// tid_ros = osThreadNew([](void *argument) {
+	// 	ros_node.ros_thread();
+	// }, NULL, NULL);
+
 	while(1) {
 		osDelay(osWaitForever);
 	}
