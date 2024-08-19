@@ -22,7 +22,7 @@
 #define WIRE_PORT Wire // Your desired Wire port.      Used when "USE_SPI" is not defined
 // The value of the last bit of the I2C address.
 // On the SparkFun 9DoF IMU breakout the default is 1, and when the ADR jumper is closed the value becomes 0
-#define AD0_VAL 1
+#define AD0_VAL 0
 
 #ifdef USE_SPI
 ICM_20948_SPI myICM; // If using SPI create an ICM_20948_SPI object
@@ -57,7 +57,7 @@ void setup()
 	WIRE_PORT.setClock(400000);
 #endif
 
-	// myICM.enableDebugging(); // Uncomment this line to enable helpful debug messages on Serial
+	myICM.enableDebugging(); // Uncomment this line to enable helpful debug messages on Serial
 
 	bool initialized = false;
 	while (!initialized)
