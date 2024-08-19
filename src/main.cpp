@@ -28,30 +28,67 @@ void setup() {
     Log.notice("ICM20948 is connected");
   }
 
-  if (!myIMU.initMagnetometer()) {
-    Log.error("Magnetometer does not respond");
-	while (1) {
-		delay(10);
-	}
-  } else {
-    Log.notice("Magnetometer is connected");
-  }
+	Serial.println("Position your ICM20948 flat and don't move it - calibrating...");
+	delay(1000);
+	myIMU.autoOffsets();
+	Serial.println("Done!"); 
 
-  // 设置磁力计工作模式为 20Hz 连续测量模式
-  myIMU.setMagOpMode(AK09916_CONT_MODE_20HZ);
+	/* enables or disables the acceleration sensor, default: enabled */
+	// myIMU.enableAcc(true);
+
+	/*  ICM20948_ACC_RANGE_2G      2 g   (default)
+	*  ICM20948_ACC_RANGE_4G      4 g
+	*  ICM20948_ACC_RANGE_8G      8 g   
+	*  ICM20948_ACC_RANGE_16G    16 g
+	*/
+	myIMU.setAccRange(ICM20948_ACC_RANGE_2G);
+
+  /*  Choose a level for the Digital Low Pass Filter or switch it off.  
+   *  ICM20948_DLPF_0, ICM20948_DLPF_2, ...... ICM20948_DLPF_7, ICM20948_DLPF_OFF 
+   *  
+   *  IMPORTANT: This needs to be ICM20948_DLPF_7 if DLPF is used in cycle mode!
+   *  
+   *  DLPF       3dB Bandwidth [Hz]      Output Rate [Hz]
+   *    0              246.0               1125/(1+ASRD) (default)
+   *    1              246.0               1125/(1+ASRD)
+   *    2              111.4               1125/(1+ASRD)
+   *    3               50.4               1125/(1+ASRD)
+   *    4               23.9               1125/(1+ASRD)
+   *    5               11.5               1125/(1+ASRD)
+   *    6                5.7               1125/(1+ASRD) 
+   *    7              473.0               1125/(1+ASRD)
+   *    OFF           1209.0               4500
+   *    
+   *    ASRD = Accelerometer Sample Rate Divider (0...4095)
+   *    You achieve lowest noise using level 6  
+   */
+  myIMU.setAccDLPF(ICM20948_DLPF_6);    
+
+  /*  Acceleration sample rate divider divides the output rate of the accelerometer.
+   *  Sample rate = Basic sample rate / (1 + divider) 
+   *  It can only be applied if the corresponding DLPF is not off!
+   *  Divider is a number 0...4095 (different range compared to gyroscope)
+   *  If sample rates are set for the accelerometer and the gyroscope, the gyroscope
+   *  sample rate has priority.
+   */
+  myIMU.setAccSampleRateDivider(10);
 }
 
 void loop() {
   // 读取传感器数据
   myIMU.readSensor();
   
-  // 获取磁力计数据，单位是 µT
-  xyzFloat magValue = myIMU.getMagValues(); 
+  xyzFloat accRaw = myIMU.getAccRawValues();
+  xyzFloat corrAccRaw = myIMU.getCorrectedAccRawValues();
+  xyzFloat gVal = myIMU.getGValues();
+  float resultantG = myIMU.getResultantG(gVal);
 
-  // 使用 ArduinoLog 打印磁力计数据
-  Log.verbose("Magnetometer Data in µTesla: ");
-  Log.verbose("%F   %F   %F", magValue.x, magValue.y, magValue.z);
+  // 使用 ArduinoLog 打印数据
+  Log.verbose("Raw acceleration values (x,y,z): %d.%d, %d.%d, %d.%d\n", (int)accRaw.x, (int)(accRaw.x * 1000) % 1000, (int)accRaw.y, (int)(accRaw.y * 1000) % 1000, (int)accRaw.z, (int)(accRaw.z * 1000) % 1000);
+  Log.verbose("Corrected acceleration values (x,y,z): %d.%d, %d.%d, %d.%d\n", (int)corrAccRaw.x, (int)(corrAccRaw.x * 1000) % 1000, (int)corrAccRaw.y, (int)(corrAccRaw.y * 1000) % 1000, (int)corrAccRaw.z, (int)(corrAccRaw.z * 1000) % 1000);
+  Log.verbose("Gyro values (x,y,z): %d.%d, %d.%d, %d.%d\n", (int)gVal.x, (int)(gVal.x * 1000) % 1000, (int)gVal.y, (int)(gVal.y * 1000) % 1000, (int)gVal.z, (int)(gVal.z * 1000) % 1000);
+  Log.verbose("Resultant G: %d.%d\n", (int)resultantG, (int)(resultantG * 1000) % 1000);
   
-  // 每隔 1 秒更新一次
-  delay(1000);
+  // 每隔 5 秒更新一次
+  delay(5000);
 }
