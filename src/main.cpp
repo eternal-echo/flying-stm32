@@ -1,57 +1,57 @@
-#include <Adafruit_Sensor.h>
 #include <Wire.h>
-#include <Adafruit_ICM20948.h>
-#include <ArduinoLog.h>
+#include <ICM20948_WE.h>
+#include <ArduinoLog.h>  // 引入 ArduinoLog 库
 
-#define SERIAL_PORT Serial
-#define WIRE_PORT Wire
+#define ICM20948_ADDR 0x68
 
-Adafruit_ICM20948 icm; // Create an ICM20948 object
-Adafruit_Sensor *accel; // Create a sensor object for the accelerometer
+ICM20948_WE myIMU = ICM20948_WE(ICM20948_ADDR);
 
-void setup(void) {
-  // Initialize Serial port for communication
-  SERIAL_PORT.begin(115200);
-  while (!SERIAL_PORT) { delay(10); } // Wait for Serial to be ready
+void setup() {
+  // 初始化 Wire 接口，使用 PB11 和 PB10 作为 I2C 的 SDA 和 SCL
+  Wire.setSDA(PB11);
+  Wire.setSCL(PB10);
+  Wire.begin();
+  Wire.setClock(400000);  // 设置 I2C 通信速率为 400kHz
 
-  // Initialize logging
-  Log.begin(LOG_LEVEL_VERBOSE, &SERIAL_PORT);
-
-  // Initialize I2C communication
-  WIRE_PORT.setSDA(PB11);
-  WIRE_PORT.setSCL(PB10);
-  WIRE_PORT.begin();
-  WIRE_PORT.setClock(400000); // Set I2C clock to 400kHz
-
-  // Initialize the ICM20948 sensor with I2C
-  if (!icm.begin_I2C(0x68)) {
-    Log.error(F("Failed to find ICM20948 chip"));
-    while (1) {
-      delay(10);
-    }
+  // 初始化串口，并设置 ArduinoLog 库
+  Serial.begin(115200);
+  while (!Serial) {}
+  
+  Log.begin(LOG_LEVEL_VERBOSE, &Serial);  // 初始化 ArduinoLog
+  
+  if (!myIMU.init()) {
+    Log.error("ICM20948 does not respond");
+	while (1) {
+	  delay(10);
+	}
+  } else {
+    Log.notice("ICM20948 is connected");
   }
 
-  Log.info(F("ICM20948 found and initialized!"));
+  if (!myIMU.initMagnetometer()) {
+    Log.error("Magnetometer does not respond");
+	while (1) {
+		delay(10);
+	}
+  } else {
+    Log.notice("Magnetometer is connected");
+  }
 
-  // Enable accelerometer DLPF and set the cutoff frequency
-  icm.enableAccelDLPF(true, ICM20X_ACCEL_FREQ_5_7_HZ);
-  Log.info(F("Accelerometer DLPF enabled with cutoff frequency 5.7 Hz"));
-
-  // Get an Adafruit_Sensor compatible object for the accelerometer
-  accel = icm.getAccelerometerSensor();
+  // 设置磁力计工作模式为 20Hz 连续测量模式
+  myIMU.setMagOpMode(AK09916_CONT_MODE_20HZ);
 }
 
 void loop() {
-  // Get a new sensor event
-  sensors_event_t event;
+  // 读取传感器数据
+  myIMU.readSensor();
+  
+  // 获取磁力计数据，单位是 µT
+  xyzFloat magValue = myIMU.getMagValues(); 
 
-  // Retrieve the latest accelerometer event data
-  accel->getEvent(&event);
-
-  // Log the accelerometer data
-  Log.verbose(F("Accel X: %f, Y: %f, Z: %f"),
-              event.acceleration.x, event.acceleration.y, event.acceleration.z);
-
-  // Delay before the next data retrieval
-  delay(10);
+  // 使用 ArduinoLog 打印磁力计数据
+  Log.verbose("Magnetometer Data in µTesla: ");
+  Log.verbose("%F   %F   %F", magValue.x, magValue.y, magValue.z);
+  
+  // 每隔 1 秒更新一次
+  delay(1000);
 }
