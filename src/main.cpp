@@ -1,8 +1,7 @@
 #include "MPU9250.h"
 #include <Wire.h> 
 
-MPU9250 mpu(Wire2);
-
+MPU9250 mpu;
 
 void print_roll_pitch_yaw() {
     Serial.print("Yaw, Pitch, Roll: ");
@@ -16,10 +15,13 @@ void print_roll_pitch_yaw() {
 
 void setup() {
     Serial.begin(115200);
-    Wire2.begin(SDA2, SCL2);
+    Wire.setSDA(PB11);
+    Wire.setSCL(PB10);
+    Wire.begin();
+
     delay(2000);
 
-    if (!mpu.setup(0x68)) {  // change to your own address
+    if (!mpu.setup(0x68, MPU9250Setting(), Wire)) {  // change to your own address
         while (1) {
             Serial.println("MPU connection failed. Please check your connection with `connection_check` example.");
             delay(5000);
