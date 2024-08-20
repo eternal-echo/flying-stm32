@@ -1,6 +1,7 @@
 #ifndef ROS_HPP
 #define ROS_HPP
 
+#include <EasyLogger.h>
 #include <STM32FreeRTOS.h>
 #include "user_config.h" // It must be located above ros2arduino.h.
 #include <ros2arduino.h>
@@ -14,38 +15,31 @@ public:
       serialPort_(serialPort),
       publishFrequency_(publishFrequency)
     {
-        // 初始化发布器
-        publisher_ = node_.createPublisher<std_msgs::String>("arduino_chatter");
-        // 设置定时器，定期发布消息
-        node_.createWallFreq(publishFrequency_, (ros2::CallbackFunc)publishString, nullptr, publisher_);
+        LOG_INFO("ros", "constructor");
     }
 
     // 初始化串口并设置 ros2arduino
     void init()
     {
+        LOG_INFO("ros", "init");
         serialPort_.begin(115200);
         while (!serialPort_) {
             ;  // 等待串口连接
         }
 
         ros2::init(&serialPort_);
+        LOG_INFO("ros", "init done");
+
+        // 初始化发布器
+        publisher_ = node_.createPublisher<std_msgs::String>("arduino_chatter");
+        // 设置定时器，定期发布消息
+        node_.createWallFreq(publishFrequency_, (ros2::CallbackFunc)publishString, nullptr, publisher_);
     }
 
     // 启动节点的循环处理
     void spin()
     {
         ros2::spin(&node_);
-    }
-
-    // 创建线程方法，适合在 FreeRTOS 中使用
-    void ros_thread()
-    {
-        init();
-        while (1)
-        {
-            spin();
-            osDelay(1000);  // FreeRTOS延迟函数
-        }
     }
 
 private:
